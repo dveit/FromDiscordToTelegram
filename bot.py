@@ -98,7 +98,6 @@ async def getting_discord_token(message: types.Message, state: FSMContext):
             await bot.send_message(message.chat.id, "Success!")
             await bot.send_message(message.chat.id, "Now you can interact with the bot using the menu in the bottom left corner.")
             await bot.send_message(message.chat.id, "Don't forget to turn on developer mode in Discord\nhttps://support.discord.com/hc/article_attachments/1500008304041/Screenshot_3.png")
-            bot.send_ph
         else:
             await bot.send_message(message.chat.id, "Wrong input.\nAccont was not created.\nType /start to retry.")
     await state.finish()
@@ -113,6 +112,7 @@ async def start(message: types.Message):
         BotDB.update_is_paused(message.from_user.id, 1)
         await bot.send_message(message.from_user.id, "Tracking paused")
 
+
 @dp.message_handler(commands=['settings'])
 async def user_settings(message: types.Message):
     await UserSettingsForm.selected_option.set()
@@ -122,6 +122,7 @@ async def user_settings(message: types.Message):
     column_selection = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     column_selection.add(button_discord_token, button_tz_delta)
     await message.answer("What do you want to edit?", reply_markup=column_selection)
+
 
 @dp.message_handler(state=UserSettingsForm.selected_option)
 async def getting_option(message: types.Message, state: FSMContext):
@@ -369,7 +370,6 @@ async def show_tracked_channels(message: types.Message):
         result = header + str_by_users
     else:
         result = "There are no tracked channels."
-    
     await bot.send_message(message.chat.id, result)
 
 
@@ -394,7 +394,6 @@ async def get_db_id(message: types.Message, state: FSMContext):
         result.append("\n\n")
         result.append(f"✅ Tracked users:\n{tracked_users}\n")
         result.append(f"🚫 Ignored users:\n{ignored_users}\n")
-        
         
         final_message = ''.join(result)
         await bot.send_message(message.chat.id, final_message) 
