@@ -23,8 +23,8 @@ class BotDB:
         return self.conn.commit()
 
 
-    def add_channel(self, tg_user_id, server_id, server_name, channel_id, channel_name, tracked_users, ignored_users, last_message_id):
-        self.cursor.execute("INSERT INTO `tracked_channels` (`tg_user_id`, `server_id`, `server_name`, `channel_id`, `channel_name`, `tracked_users`, `ignored_users`, `last_message_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (tg_user_id, server_id, server_name, channel_id, channel_name, tracked_users, ignored_users, last_message_id))
+    def add_channel(self, tg_user_id, server_id, channel_id, tracked_users, ignored_users, last_message_id):
+        self.cursor.execute("INSERT INTO `tracked_channels` (`tg_user_id`, `server_id`, `channel_id`, `tracked_users`, `ignored_users`, `last_message_id`) VALUES (?, ?, ?, ?, ?, ?)", (tg_user_id, server_id, channel_id, tracked_users, ignored_users, last_message_id))
         return self.conn.commit()
 
 
@@ -39,12 +39,12 @@ class BotDB:
 
 
     def get_tracked_channels(self, tg_user_id):
-        result = self.cursor.execute("SELECT `id`, `server_id`, `server_name`, `channel_id`, `channel_name`, `tracked_users`, `ignored_users`, `last_message_id` FROM `tracked_channels` WHERE `tg_user_id` = ?", (tg_user_id,))
+        result = self.cursor.execute("SELECT `id`, `server_id`, `channel_id`, `tracked_users`, `ignored_users`, `last_message_id` FROM `tracked_channels` WHERE `tg_user_id` = ?", (tg_user_id,))
         return result.fetchall()
 
 
     def get_channel_info(self, db_id, tg_user_id):
-        result = self.cursor.execute("SELECT `server_id`, `server_name`, `channel_id`, `channel_name`, `tracked_users`, `ignored_users`, `last_message_id` FROM `tracked_channels` WHERE `id` = ? AND `tg_user_id` = ?", (db_id, tg_user_id,))
+        result = self.cursor.execute("SELECT `server_id`, `channel_id`, `tracked_users`, `ignored_users`, `last_message_id` FROM `tracked_channels` WHERE `id` = ? AND `tg_user_id` = ?", (db_id, tg_user_id,))
         return result.fetchall()
 
 
@@ -119,9 +119,7 @@ def create_db(db_name:str) -> None:
         "id"	INTEGER NOT NULL UNIQUE,
         "tg_user_id"	INTEGER NOT NULL,
         "server_id"	INTEGER,
-        "server_name"	TEXT,
         "channel_id"	INTEGER,
-        "channel_name"	TEXT,
         "tracked_users"	TEXT,
         "ignored_users"	TEXT,
         "last_message_id"	INTEGER,
