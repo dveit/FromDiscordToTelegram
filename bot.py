@@ -40,11 +40,10 @@ class UserSettingsForm(StatesGroup):
     ds_token = State()
     tz_delta = State()
 
+
 class ChannelAdditionForm(StatesGroup):
     server_id = State()
-    server_name = State()
     channel_id = State()
-    channel_name = State()
 
 
 class ChannelEditionForm(StatesGroup):
@@ -80,13 +79,13 @@ async def getting_discord_token(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['discord_token'] = message.text
         response = await is_token_legit(message.text)
-        if response == "Wrong token!":
-            await bot.send_message(chat_id=message.chat.id, text="Wrong token.\nAccont was not created.\nUse /start to retry.")
-            await state.finish()
-        else:
+        if response:
             await bot.send_message(message.chat.id, f"Recognized as {response}")
             await UserAdditionForm.next()
             await bot.send_message(message.chat.id, "Send me your timezone delta.\nExample:\n+3 for Moscow\n-4 for New-York")
+        else:
+            await bot.send_message(chat_id=message.chat.id, text="Wrong token.\nAccont was not created.\nUse /start to retry.")
+            await state.finish()
 
 
 @dp.message_handler(state=UserAdditionForm.tz_delta)
@@ -145,13 +144,12 @@ async def getting_ds_token(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['discord_token'] = message.text
         response = await is_token_legit(ds_token=data['discord_token'])
-        if response == "Wrong token!":
-            await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Wrong token. Edition canceled.")
-            await state.finish()
-        else:
+        if response:
             BotDB.update_ds_token(message.from_user.id, data['discord_token'])
             await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text=f"Recognized as {response}\nToken was updated!")
-            await state.finish()
+        else:
+            await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Wrong token. Edition canceled.")
+    await state.finish()
 
 
 @dp.message_handler(state=UserSettingsForm.tz_delta)
@@ -162,13 +160,11 @@ async def getting_tz_delta(message: types.Message, state: FSMContext):
             if data['timezone_delta'] in range(-12, 13):
                 BotDB.update_tz_delta(message.from_user.id, data['timezone_delta'])
                 await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Timezone was updated!")
-                await state.finish()
             else:
                 await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Wrong timezone. Editing canceled.")
-                await state.finish()
         except ValueError:
             await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Timezone value is not integer. Editing canceled.")
-            await state.finish()
+    await state.finish()
 
 
 @dp.message_handler(state='*', commands='cancel')
@@ -177,8 +173,8 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
-    await state.finish()
     await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Action canceled.")
+    await state.finish()
 
 
 @dp.message_handler(commands="add")
@@ -192,19 +188,17 @@ async def getting_channel_id(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if len(message.text) == 18 and (message.text).isdigit():
             data['server_id'] = message.text
-            await ChannelAdditionForm.next()
-            await bot.send_message(message.chat.id, "Send me the name of this server")
+            ds_token = BotDB.get_discord_token(message.from_user.id)[0][0]
+            server_name = await get_server_name(ds_token=ds_token, server_id=data['server_id'])
+            if server_name:
+                await ChannelAdditionForm.next()
+                await bot.send_message(message.chat.id, f"Recognized as {server_name}\n\nSend me the channel ID on this server")
+            else:
+                await bot.send_message(message.chat.id, "Wrong server ID or no access to server. Addition canceled.")
+                await state.finish()
         else:
-            await bot.send_message(message.chat.id, "Wrong ID. Addition canceled.")
+            await bot.send_message(message.chat.id, "Wrong server ID. Addition canceled.")
             await state.finish()
-
-
-@dp.message_handler(state=ChannelAdditionForm.server_name)
-async def getting_channel_description(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-            data['server_name'] = message.text
-            await ChannelAdditionForm.next()
-            await bot.send_message(message.chat.id, "Send me the channel ID on this server")
 
 
 @dp.message_handler(state=ChannelAdditionForm.channel_id)
@@ -212,25 +206,20 @@ async def getting_channel_id(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if len(message.text) == 18 and (message.text).isdigit():
             data['channel_id'] = message.text
-            await ChannelAdditionForm.next()
-            await bot.send_message(message.chat.id, "Send me the name of this channel")
-        else:
-            await bot.send_message(message.chat.id, "Wrong ID. Addition canceled.")
-            await state.finish()
-
-
-@dp.message_handler(state=ChannelAdditionForm.channel_name)
-async def getting_channel_description(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-            data['channel_name'] = message.text
-            data['tracked_users'] = ""
-            data['ignored_users'] = ""
             ds_token = BotDB.get_discord_token(message.from_user.id)[0][0]
-            data['last_message_id'] = await get_last_message_id(ds_token, int(data['channel_id']))
-            
-            BotDB.add_channel(message.from_user.id, int(data['server_id']), data['server_name'], int(data['channel_id']), data['channel_name'], data['tracked_users'], data['ignored_users'], data['last_message_id'])
-            await bot.send_message(message.chat.id, "Channel added!")
-            await state.finish()
+            channel_name = await get_channel_name(ds_token=ds_token, channel_id=data['channel_id'])
+            if channel_name:
+                await bot.send_message(message.chat.id, f"Recognized as {channel_name}")
+                data['tracked_users'] = ""
+                data['ignored_users'] = ""
+                data['last_message_id'] = await get_last_message_id(ds_token, int(data['channel_id']))
+                BotDB.add_channel(message.from_user.id, int(data['server_id']), int(data['channel_id']), data['tracked_users'], data['ignored_users'], data['last_message_id'])
+                await bot.send_message(message.chat.id, "Channel added!")
+            else:
+                await bot.send_message(message.chat.id, "Wrong channel ID or no access to channel. Addition canceled.")
+        else:
+            await bot.send_message(message.chat.id, "Wrong channel ID. Addition canceled.")
+    await state.finish()
 
 
 @dp.message_handler(commands="edit_users")
@@ -287,13 +276,12 @@ async def getting_user_id(message: types.Message, state: FSMContext):
                 cell_content = ""
                 BotDB.update_tracked_user(data['db_id'], message.chat.id, cell_content)
                 await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Tracked users list was cleared!")
-                await state.finish()
             if data['db_column'] == 'ignored users':
                 cell_content = BotDB.get_ignored_users(data['db_id'], message.chat.id)[0][0]
                 cell_content = ""
                 BotDB.update_ignored_user(data['db_id'], message.chat.id, cell_content)
                 await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Ignored users list was cleared!")
-                await state.finish()
+            await state.finish()
         else:
             await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Wrong editing option. Edition canceled.")
             await state.finish()
@@ -310,13 +298,12 @@ async def getting_last_message_id(message: types.Message, state: FSMContext):
                     cell_content += data['ds_user_id'] + ','
                     BotDB.update_tracked_user(data['db_id'], message.chat.id, cell_content)
                     await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Tracked users list was updated!")
-                    await state.finish()
                 elif data['editing_option'] == 'delete existing user':
                     cell_content = BotDB.get_tracked_users(data['db_id'], message.chat.id)[0][0]
                     cell_content = cell_content.replace(f"{data['ds_user_id']},", "")
                     BotDB.update_tracked_user(data['db_id'], message.chat.id, cell_content)
                     await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="User was removed from tracked list!")
-                    await state.finish()
+                await state.finish()
             elif data['db_column'] == 'ignored users':
                 if data['editing_option'] == 'append new user':
                     cell_content = BotDB.get_ignored_users(data['db_id'], message.chat.id)[0][0]
@@ -326,13 +313,12 @@ async def getting_last_message_id(message: types.Message, state: FSMContext):
                         cell_content = data['ds_user_id'] + ','
                     BotDB.update_ignored_user(data['db_id'], message.chat.id, cell_content)
                     await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Ignored users list was updated!")
-                    await state.finish()
                 elif data['editing_option'] == 'delete existing user':
                     cell_content = BotDB.get_ignored_users(data['db_id'], message.chat.id)[0][0]
                     cell_content = cell_content.replace(f"{data['ds_user_id']},", "")
                     BotDB.update_ignored_user(data['db_id'], message.chat.id, cell_content)
                     await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="User was removed from ignored list!")
-                    await state.finish()
+                await state.finish()
         else:
             await bot.send_message(chat_id=message.chat.id, reply_markup=ReplyKeyboardRemove(), text="Wrong ID. Edition canceled.")
             await state.finish()
@@ -344,12 +330,15 @@ async def show_tracked_channels(message: types.Message):
     tracked_all = []
     tracked_by_users = []
     for tpl in tracked_channels:
-        db_id = tpl[0]
-        server_name = tpl[2]
-        channel_name = tpl[4]
-        tracked_users = tpl[5]
+        db_id, server_id, channel_id, tracked_users, ignored_users, last_message_id = tpl
+        ds_token = BotDB.get_discord_token(message.from_user.id)[0][0]
+        server_name = await get_server_name(ds_token, server_id)
+        if not server_name:
+            server_name = "⚠️ Unaccessable server ⚠️"
+        channel_name = await get_channel_name(ds_token, channel_id)
+        if not channel_name:
+            channel_name = "⚠️ Unaccessable channel ⚠️"
         tracked_users_count = int(len(tracked_users)/19)
-        ignored_users = tpl[6]
         ignored_users_count = int(len(ignored_users)/19)
         if len(tracked_users) == 0:
             tracked_all.append(f'[{db_id}] {server_name} -> {channel_name} [🚫{ignored_users_count}]')
@@ -370,6 +359,7 @@ async def show_tracked_channels(message: types.Message):
         result = header + str_by_users
     else:
         result = "There are no tracked channels."
+    
     await bot.send_message(message.chat.id, result)
 
 
@@ -383,17 +373,27 @@ async def get_db_id(message: types.Message, state: FSMContext):
         result = []
         data['id'] = int(message.text)
         await state.finish()
-        server_id, server_name, channel_id, channel_name, tracked_users, ignored_users, last_message_id = BotDB.get_channel_info(data['id'], message.from_user.id)[0]
+        ds_token = BotDB.get_discord_token(message.from_user.id)[0][0]
+        server_id, channel_id, tracked_users, ignored_users, last_message_id = BotDB.get_channel_info(data['id'], message.from_user.id)[0]
+        server_name = await get_server_name(ds_token, server_id)
+        channel_name = await get_channel_name(ds_token, channel_id)
         tracked_users = tracked_users.replace(",", "\n")
         ignored_users = ignored_users.replace(",", "\n")
         result.append(f"Server ID: {server_id}\n")
-        result.append(f"Server name: {server_name}\n")
-        result.append(f"Channel ID: {server_id}\n")
-        result.append(f"Channel name: {server_name}\n")
+        if server_name:
+            result.append(f"Server name: {server_name}\n")
+        else:
+            result.append("Unaccessable server")
+        result.append(f"Channel ID: {channel_id}\n")
+        if channel_name:
+            result.append(f"Channel name: {channel_name}\n")
+        else:
+            result.append("Unaccessable channel")
         result.append(f"Last message ID in DB: {last_message_id}\n")
         result.append("\n\n")
         result.append(f"✅ Tracked users:\n{tracked_users}\n")
         result.append(f"🚫 Ignored users:\n{ignored_users}\n")
+        
         
         final_message = ''.join(result)
         await bot.send_message(message.chat.id, final_message) 
@@ -435,7 +435,7 @@ async def confirm_deletion(message: types.Message, state: FSMContext):
 
 
 async def is_token_legit(ds_token:str) -> str:
-    """Returns a list of dicts containing new messages data"""
+    """Returns ds identificator(True) if token is legit False otherwise"""
     
     headers = {
         'authorization': ds_token,
@@ -446,10 +446,40 @@ async def is_token_legit(ds_token:str) -> str:
         username = data['username']+"#"+data['discriminator']
         return username
     except KeyError:
-        return "Wrong token!"
+        return False
 
 
-async def get_servername(ds_token:str, ds_server_id, ds_user_id) -> str:
+async def get_server_name(ds_token, server_id):
+    """Returns servername(True) server is accessable and False otherwise"""
+    
+    headers = {
+        'authorization': ds_token,
+        }
+    r = requests.get(f"https://discord.com/api/v9/guilds/{server_id}/preview", headers=headers)
+    data = json.loads(r.text)
+    try:
+        server_name = data['name']
+        return server_name
+    except KeyError:
+        return False
+
+
+async def get_channel_name(ds_token, channel_id):
+    """Returns channel_name(True) if channel is accessable and False otherwise"""
+    
+    headers = {
+        'authorization': ds_token,
+        }
+    r = requests.get(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+    data = json.loads(r.text)
+    try:
+        channel_name = data['name']
+        return channel_name
+    except KeyError:
+        return False
+
+
+async def get_username_on_server(ds_token:str, ds_server_id, ds_user_id) -> str:
     """Returns users nickname on given server"""
     
     headers = {
@@ -507,69 +537,82 @@ async def processing(tg_user_id:int, ds_token:str, tz_delta:int):
     
     tracked_list = BotDB.get_tracked_channels(tg_user_id)
     for row in tracked_list:
-        db_id, server_id, server_name, channel_id, channel_name, tracked_users, ignored_users, last_message_id = row
-        data = await get_discord_messages(ds_token, channel_id, last_message_id)
-        usernames = {}
-        if 0 < len(data):
-            for raw_message in data:
-                message = []
-                received_message_id = int(raw_message['id'])
-                author_id = raw_message['author']['id']
-                if len(ignored_users) == 0 or author_id not in ignored_users:
-                    if author_id in usernames:
-                        author_username = usernames[author_id]
-                    else:
-                        author_username = await get_servername(ds_token, server_id, author_id)
-                        if author_username is not None:
-                            usernames[author_id] = author_username
+        db_id, server_id, channel_id, tracked_users, ignored_users, last_message_id = row
+        server_name = await get_server_name(ds_token, server_id)
+        channel_name = await get_channel_name(ds_token, channel_id)
+        if server_name and channel_name:
+            data = await get_discord_messages(ds_token, channel_id, last_message_id)
+            usernames = {}
+            if 0 < len(data):
+                for raw_message in data:
+                    message_parts = []
+                    received_message_id = int(raw_message['id'])
+                    author_id = raw_message['author']['id']
+                    if len(ignored_users) == 0 or author_id not in ignored_users:
+                        if author_id in usernames:
+                            author_username = usernames[author_id]
                         else:
-                            author_username = raw_message['author']['username']
-                    message_content = raw_message['content']
-                    timestamp = raw_message['timestamp']
-                    timestamp = datetime.fromisoformat(timestamp.replace("T", " ").replace("+00:00", ""))
-                    ts_edited = (timestamp + timedelta(hours=tz_delta)).strftime("%d.%m.%Y %H:%M:%S")
-                    msg_date, msg_time = ts_edited.split(" ")
-
-                    message.append(f"🔥 {server_name}")
-                    message.append("\n")
-                    message.append(f"⚡ {channel_name}")
-                    message.append("\n\n")
-                    message.append(f"⏰ {msg_date} {msg_time}")
-                    message.append("\n")
-                    message.append(f"✉️ Message from {author_username}")
-                    message.append("\n")
-                    if 'referenced_message' in raw_message:
-                        message.append("\n")
-                        referenced_author_name = await get_servername(ds_token, server_id, raw_message['referenced_message']['author']['id'])
-                        referenced_message_content = raw_message['referenced_message']['content']
-                        message.append(f"↪ Replying to {referenced_author_name}: {referenced_message_content}")
-                        message.append("\n")
-                    if len(raw_message['attachments']) != 0:
-                        message.append("\n")
-                        for _ in range(len(raw_message['attachments'])):
-                            if raw_message['attachments'][_]['content_type'] in 'video/mp4 video/webm':
-                                attachment = raw_message['attachments'][_]['proxy_url']
+                            author_username = await get_username_on_server(ds_token, server_id, author_id)
+                            if author_username is not None:
+                                usernames[author_id] = author_username
                             else:
-                                attachment = raw_message['attachments'][_]['url']
-                            message.append(f"📎 {attachment}")
-                            message.append("\n\n")
-                    if len(message_content) > 0:
-                        message.append("\n")
-                        message.append(f"📝 {message_content}")
-                    
-                    BotDB.update_message_id(tg_user_id, channel_id, received_message_id)
-                    
-                    if len(tracked_users) == 0: # messages from all users
-                        final_message = ''.join(message)
-                        await bot.send_message(chat_id=tg_user_id, text=final_message, disable_web_page_preview=True)
-                    elif author_id in tracked_users: # messages by selected user
-                        message[6] += " ✅" # adding symbol for tracked user
-                        final_message = ''.join(message)
-                        await bot.send_message(chat_id=tg_user_id, text=final_message, disable_web_page_preview=True)
-                else: # user is ignored
-                    pass
-        else: # no new messages
-            pass
+                                author_username = raw_message['author']['username']
+                        message_content = raw_message['content']
+                        timestamp = raw_message['timestamp']
+                        timestamp = datetime.fromisoformat(timestamp.replace("T", " ").replace("+00:00", ""))
+                        ts_edited = (timestamp + timedelta(hours=tz_delta)).strftime("%d.%m.%Y %H:%M:%S")
+                        msg_date, msg_time = ts_edited.split(" ")
+
+                        message_parts.append(f"🔥 {server_name}")
+                        message_parts.append("\n")
+                        message_parts.append(f"⚡ {channel_name}")
+                        message_parts.append("\n\n")
+                        message_parts.append(f"⏰ {msg_date} {msg_time}")
+                        message_parts.append("\n")
+                        message_parts.append(f"✉️ Message from {author_username}")
+                        message_parts.append("\n")
+                        if 'referenced_message' in raw_message:
+                            message_parts.append("\n")
+                            referenced_author_name = await get_username_on_server(ds_token, server_id, raw_message['referenced_message']['author']['id'])
+                            referenced_message_content = raw_message['referenced_message']['content']
+                            message_parts.append(f"↪ Replying to {referenced_author_name}: {referenced_message_content}")
+                            message_parts.append("\n")
+                        if len(raw_message['attachments']) != 0:
+                            message_parts.append("\n")
+                            for _ in range(len(raw_message['attachments'])):
+                                if raw_message['attachments'][_]['content_type'] in 'video/mp4 video/webm':
+                                    attachment = raw_message['attachments'][_]['proxy_url']
+                                else:
+                                    attachment = raw_message['attachments'][_]['url']
+                                message_parts.append(f"📎 {attachment}")
+                                message_parts.append("\n\n")
+                        if len(message_content) > 0:
+                            message_parts.append("\n")
+                            message_parts.append(f"📝 {message_content}")
+                        
+                        BotDB.update_message_id(tg_user_id, channel_id, received_message_id)
+                        
+                        if len(tracked_users) == 0: # messages from all users
+                            final_message = ''.join(message_parts)
+                            await bot.send_message(chat_id=tg_user_id, text=final_message, disable_web_page_preview=True)
+                        elif author_id in tracked_users: # messages by selected user
+                            message_parts[6] += " ✅" # adding symbol for tracked user
+                            final_message = ''.join(message_parts)
+                            await bot.send_message(chat_id=tg_user_id, text=final_message, disable_web_page_preview=True)
+                    else: # user is ignored
+                        pass
+            else: # no new messages
+                pass
+        else:
+            error_message = []
+            error_message.append(f"⚠️ Warning! ⚠️")
+            if not server_name:
+                error_message.append("\n")
+                error_message.append(f"No access to server {server_name}!")
+            if not channel_name:
+                error_message.append("\n")
+                error_message.append(f"No access to channel {channel_name}!")
+            await bot.send_message(chat_id=tg_user_id, text=''.join(error_message))
 
 
 async def check_channels():
