@@ -69,7 +69,7 @@ class AllChannelsDeleteForm(StatesGroup):
 async def start(message: types.Message):
     if not BotDB.user_exists(message.from_user.id): 
         await UserAdditionForm.ds_token.set()
-        await bot.send_message(message.from_user.id, "Send me Discord token.\nDon't know how to get it?\nWatch here (PC required) https://gist.github.com/9sv/3272bc9a63d64b1eb93286ffb3217130")
+        await bot.send_message(message.from_user.id, "Send me Discord token.\nDon't know how to get it?\nWatch here (PC required) https://gist.github.com/dveit/09781b473a3f60a15e92a6a313985075")
     else:
         await bot.send_message(message.chat.id, f"Welcome back, {message.from_user.full_name}!")
 
@@ -129,7 +129,7 @@ async def getting_option(message: types.Message, state: FSMContext):
         data['selected_option'] = message.text
         if data['selected_option'] == 'Discord token':
             await UserSettingsForm.next()
-            await bot.send_message(message.from_user.id, "Send me Discord token.\nDon't know how to get it?\nWatch here (PC required) https://gist.github.com/9sv/3272bc9a63d64b1eb93286ffb3217130")
+            await bot.send_message(message.from_user.id, "Send me Discord token.\nDon't know how to get it?\nWatch here (PC required) https://gist.github.com/dveit/09781b473a3f60a15e92a6a313985075")
         elif data['selected_option'] == 'Timezone':
             await UserSettingsForm.next()
             await UserSettingsForm.next()
