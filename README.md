@@ -1,67 +1,67 @@
 # Description
+![Resulting example](https://cdn.discordapp.com/attachments/962649486226767953/965948194657812540/e4a37b83-7619-4c25-b317-ca622d78f2e4.jpeg)
 
-This bot allows you to receive messages in Telegram from user defined Discord channels with the ability to configure important / ignored users.
+This bot allows you to receive messages in Telegram from user-defined Discord channels with the ability to configure selected / ignored users.
 
-You won't miss any important messages even if Discord notifications are off!
+You won't miss any important messages even if Discord notifications are turned off!
 
-### It's not a Discord replacement so don't overload Discord API with requests or you can be banned! Use а small amount of tracked channels or increase checking delay.
+### This is not a replacement for Discord, so don't overload the Discord API with requests or you might get banned! Use a small number of tracked channels or increase the checking delay.
 
 ## Installation
-First of all you need to install **requirements** from file:
-```bash
+
+First of all you need to make sure that you are using **Python 3.6** or higher.
+
+After that install **requirements** from file:
+``` bash
 pip install -r requirements.txt
 ```
+The next step is to edit the **settings.ini** file to add the database name and Telegram bot token.
 
-The next step is to edit the **settings.ini** file to add the name of the database and the Telegram bot token.
-
-*By default the check is performed once a minute, but this time can be changed depending on the number of users and the channels they tracking.*
+*By default, the check is performed once per minute, but this time can be changed depending on the number of users and the channels they follow.*
 
 ```ini
-# tracking loops delay in seconds (lower than 60 not recommended)
+# delay of tracking loop in seconds (less than 60 is not recommended)
 checking_delay = 60
 
-# name of your database with .db in the end
+# name of your database with .db at the end
 db_name = database.db
 
 # token of your telegram bot
 tg_bot_token = 123456:abcdef
 ```
+The last step is to add commands for interacting with the bot. For this you need to:
+- enter chat with BotFather
+- choose your bot
+- click Edit bot
+- click Edit commands
 
-The last step is to add commands directly to the telegram bot.
-How to do this:
-- enter the chat with BotFather
-- select your bot
-- click Edit Bot
-- click Edit Commands
-
-Then send following:
+Then send the following:
 ```
-tracked - Shows tracked channels
-add - Adds new channel
+tracked - Shows the channels being tracked
+add - Adds a new channel
 edit_users - Manages tracked / ignored users
-settings - Changes Discord token or Timezone
+settings - Changes Discord token or time zone
 pause - Pauses / resumes tracking
-channel_info - Shows info from DB
-delete - Deletes channel
+channel_info - Shows information from the DB
+delete - Deletes the channel
 delete_all - Deletes all tracked channels
-cancel - Cancels addition / edition / deletion
+cancel - Cancels adding / editing / deleting
 ```
-
-These will be commands for interacting with your bot, you can arrange them in the order you want.
+You can change the description or order of commands, but the left side must remain unchanged and all commands must be present in the list.
 
 ## Usage
+To start the bot use:
 
-To run bot use:
-
-```bash
+``` bash
 python3 bot.py
 ```
 
-After that go to chat with your bot and press **start** button and it will tell you what to do next.
+Open a dialogue with your bot.
+If the dialog is not empty, clear history to make the **start** button available.
+Then you just need to press the **start** button and it will tell you what to do next.
 
-You will need PC during first launch to setup Discord token.
 
-## Contributing
+## Contribute
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 Please make sure to update tests as appropriate.
