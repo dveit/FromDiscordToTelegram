@@ -43,7 +43,7 @@ edit_users - Manages tracked / ignored users
 settings - Changes Discord token or time zone
 pause - Pauses / resumes tracking
 channel_info - Shows information from the DB
-rename - Changes the name of the server / channel
+rename - Changes server / channel name
 delete - Deletes the channel
 delete_all - Deletes all tracked channels
 cancel - Cancels adding / editing / deleting
