@@ -24,7 +24,7 @@ class BotDB:
                     tracked_users, ignored_users, last_message_id):
         self.cursor.execute(
             "INSERT INTO `tracked_channels` (`tg_user_id`, `server_id`, `server_name`, `channel_id`, `channel_name`, "
-            "`tracked_users`, `ignored_users`, `last_message_id`) VALUES (?, ?, ?, ?, ?, ?)",
+            "`tracked_users`, `ignored_users`, `last_message_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (tg_user_id, server_id, server_name, channel_id, channel_name,
              tracked_users, ignored_users, last_message_id))
         return self.conn.commit()

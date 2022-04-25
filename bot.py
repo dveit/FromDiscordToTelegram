@@ -578,8 +578,8 @@ async def get_username_on_server(ds_token: str, server_id: int, ds_user_id: int)
     json_data = json.loads(r.text)
 
     try:
-        username_on_server = list(filter(lambda item: item["id"] == str(server_id), json_data["mutual_guilds"]))[0][
-            "nick"]
+        username_on_server = list(filter(lambda item: item["id"] == str(server_id),
+                                         json_data["mutual_guilds"]))[0]["nick"]
         ds_username = json_data["user"]["username"]
         if username_on_server is not None:
             servername = f"{username_on_server} ({ds_username}#{json_data['user']['discriminator']})"
@@ -663,8 +663,8 @@ async def processing(tg_user_id: int, ds_token: str, tz_delta: int):
                         if "referenced_message" in raw_message:
                             message_parts.append("\n")
                             referenced_author_name = await get_username_on_server(ds_token, server_id,
-                                                                                  raw_message["referenced_message"][
-                                                                                      "author"]["id"])
+                                                                                  raw_message["referenced_message"]
+                                                                                  ["author"]["id"])
                             referenced_message_content = raw_message["referenced_message"]["content"]
                             message_parts.append(
                                 f"↪ Replying to {referenced_author_name}: {referenced_message_content}")
