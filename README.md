@@ -5,11 +5,11 @@ This bot allows you to receive messages in Telegram from user-defined Discord ch
 
 You won't miss any important messages even if Discord notifications are turned off!
 
-### This is not a replacement for Discord, so don't overload the Discord API with requests or you might get banned! Use a small number of tracked channels or increase the checking delay.
+### This is not a replacement for Discord, so don't overload the Discord API with requests, or you might get banned! Use a small number of tracked channels or increase the checking delay.
 
 ## Installation
 
-First of all you need to make sure that you are using **Python 3.6** or higher.
+First you need to make sure that you are using **Python 3.6** or higher.
 
 After that install **requirements** from file:
 ``` bash
@@ -27,7 +27,7 @@ checking_delay = 60
 db_name = database.db
 
 # token of your telegram bot
-tg_bot_token = 123456:abcdef
+tg_bot_token = 123456:abc-def
 ```
 The last step is to add commands for interacting with the bot. For this you need to:
 - enter chat with BotFather
@@ -59,7 +59,7 @@ python3 bot.py
 
 Open a dialogue with your bot.
 If the dialog is not empty, clear history to make the **start** button available.
-Then you just need to press the **start** button and it will tell you what to do next.
+Then you just need to press the **start** button, and it will tell you what to do next.
 
 
 ## Contribute
