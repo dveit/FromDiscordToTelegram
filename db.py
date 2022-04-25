@@ -20,13 +20,13 @@ class BotDB:
                             (tg_user_id, ds_token, tz_delta,))
         return self.conn.commit()
 
-    def add_channel(self, tg_user_id, server_id, server_name, channel_id, channel_name, tracked_users, ignored_users,
-                    last_message_id):
+    def add_channel(self, tg_user_id, server_id, server_name, channel_id, channel_name,
+                    tracked_users, ignored_users, last_message_id):
         self.cursor.execute(
             "INSERT INTO `tracked_channels` (`tg_user_id`, `server_id`, `server_name`, `channel_id`, `channel_name`, "
-            "`tracked_users`, `ignored_users`, `last_message_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (tg_user_id, server_id, server_name, channel_id, channel_name, tracked_users, ignored_users,
-             last_message_id))
+            "`tracked_users`, `ignored_users`, `last_message_id`) VALUES (?, ?, ?, ?, ?, ?)",
+            (tg_user_id, server_id, server_name, channel_id, channel_name,
+             tracked_users, ignored_users, last_message_id))
         return self.conn.commit()
 
     def delete_channel(self, tg_user_id, db_id):
@@ -95,6 +95,16 @@ class BotDB:
 
     def update_tz_delta(self, tg_user_id, tz_delta):
         self.cursor.execute("UPDATE `bot_users` SET `tz_delta` = ? WHERE `tg_user_id` = ?", (tz_delta, tg_user_id,))
+        return self.conn.commit()
+
+    def update_server_name(self, tg_user_id, db_id, new_name):
+        self.cursor.execute("UPDATE `tracked_channels` SET `server_name` = ? WHERE `id` = ? AND `tg_user_id` = ?",
+                            (new_name, db_id, tg_user_id,))
+        return self.conn.commit()
+
+    def update_channel_name(self, tg_user_id, db_id, new_name):
+        self.cursor.execute("UPDATE `tracked_channels` SET `channel_name` = ? WHERE `id` = ? AND `tg_user_id` = ?",
+                            (new_name, db_id, tg_user_id,))
         return self.conn.commit()
 
     def close(self):
