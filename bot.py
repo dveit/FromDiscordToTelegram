@@ -265,7 +265,7 @@ async def initialize_channel_adding(message: types.Message):
 @dp.message_handler(state=ChannelAdditionForm.server_id)
 async def getting_server_id(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        if len(message.text) == 18 and message.text.isdigit():
+        if len(message.text) >= 18 and message.text.isdigit():
             data["server_id"] = message.text
             ds_token = BotDB.get_discord_token(message.from_user.id)[0][0]
             server_name = await get_server_name(ds_token=ds_token, server_id=data["server_id"])
@@ -285,7 +285,7 @@ async def getting_server_id(message: types.Message, state: FSMContext):
 @dp.message_handler(state=ChannelAdditionForm.channel_id)
 async def getting_channel_id(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        if len(message.text) == 18 and message.text.isdigit():
+        if len(message.text) >= 18 and message.text.isdigit():
             data["channel_id"] = message.text
             ds_token = BotDB.get_discord_token(message.from_user.id)[0][0]
             channel_name = await get_channel_name(ds_token=ds_token, channel_id=data["channel_id"])
@@ -386,7 +386,7 @@ async def getting_editing_option(message: types.Message, state: FSMContext):
 @dp.message_handler(state=ChannelEditionForm.ds_user_id)
 async def getting_ds_user_id(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        if len(message.text) == 18 and message.text.isdigit():
+        if len(message.text) >= 18 and message.text.isdigit():
             data["ds_user_id"] = message.text
             if data["db_column"] == "tracked users":
                 if data["editing_option"] == "append new user":
