@@ -1,5 +1,5 @@
 # Description
-![Resulting example](https://cdn.discordapp.com/attachments/962649486226767953/965948194657812540/e4a37b83-7619-4c25-b317-ca622d78f2e4.jpeg)
+![Resulting example]([https://cdn.discordapp.com/attachments/962649486226767953/965948194657812540/e4a37b83-7619-4c25-b317-ca622d78f2e4.jpeg](https://media.discordapp.net/attachments/962649486226767953/965948194657812540/e4a37b83-7619-4c25-b317-ca622d78f2e4.jpeg?ex=663b6c5c&is=663a1adc&hm=85449744150ace401c7071610d8aa7b1632ef4758c40452bf727fa4fc66691da&=&format=webp))
 
 This bot allows you to receive messages in Telegram from user-defined Discord channels with the ability to configure selected / ignored users.
 
