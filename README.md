@@ -1,5 +1,4 @@
 # Description
-![Resulting example](https://kladhelper.site/images/screenshots/ds2tg.webp)
 
 This bot allows you to receive messages in Telegram from user-defined Discord channels with the ability to configure selected / ignored users.
 
